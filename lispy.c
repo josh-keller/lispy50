@@ -399,7 +399,30 @@ lval* builtin_op(lenv* e, lval* a, char* op) {
             }
             x->num /= y->num;
         }
+        if (strcmp(op, "%") == 0) {
+            if (y->num == 0) {
+                lval_del(x); lval_del(y);
+                x = lval_err("Division By Zero.");
+                break;
+            }
+            x->num %= y->num;
+        }   
+        if (strcmp(op, "^") == 0) { 
+            if (y->num < 0) {
+                lval_del(x); lval_del(y);
+                x = lval_err("Unable to raise to negative power.");
+                break;
+            }
+            x->num = pow(x->num, y->num);
+        }
+        if (strcmp(op, "min") == 0) {
+            if (y->num < x->num) { x->num = y->num; }
+        }
+        if (strcmp(op, "max") == 0) {
+            if (y->num > x->num) { x->num = y->num; }
+        }
         
+
         lval_del(y);
     }
     
@@ -421,6 +444,22 @@ lval* builtin_mul(lenv* e, lval* a) {
 
 lval* builtin_div(lenv* e, lval* a) {
     return builtin_op(e, a, "/");
+}
+
+lval* builtin_mod(lenv* e, lval* a) {
+    return builtin_op(e, a, "%");
+}
+
+lval* builtin_min(lenv* e, lval* a) {
+    return builtin_op(e, a, "min");
+}
+
+lval* builtin_max(lenv* e, lval* a) {
+    return builtin_op(e, a, "max");
+}
+
+lval* builtin_pow(lenv* e, lval* a) {
+    return builtin_op(e, a, "^");
 }
 
 lval* builtin_def(lenv* e, lval* a) {
@@ -473,9 +512,19 @@ void lenv_add_builtins(lenv* e) {
     
     /* Mathematical Functions */
     lenv_add_builtin(e, "+", builtin_add);
+    lenv_add_builtin(e, "add", builtin_add);
     lenv_add_builtin(e, "-", builtin_sub);
+    lenv_add_builtin(e, "sub", builtin_sub);
     lenv_add_builtin(e, "*", builtin_mul);
+    lenv_add_builtin(e, "mul", builtin_mul);
     lenv_add_builtin(e, "/", builtin_div);
+    lenv_add_builtin(e, "div", builtin_div);
+    lenv_add_builtin(e, "%", builtin_mod);
+    lenv_add_builtin(e, "mod", builtin_mod);
+    lenv_add_builtin(e, "^", builtin_pow);
+    lenv_add_builtin(e, "pow", builtin_pow);
+    lenv_add_builtin(e, "min", builtin_min);
+    lenv_add_builtin(e, "max", builtin_max);
 }
 
 /* Evaluation */
@@ -564,7 +613,7 @@ int main(int argc, char** argv) {
     mpca_lang(MPCA_LANG_DEFAULT,
         "                                                     \
             number : /-?[0-9]+/ ;                               \
-            symbol : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ;         \
+            symbol : /[a-zA-Z0-9_+\\-*\\/\%^\\\\=<>!&]+/ ;         \
             sexpr  : '(' <expr>* ')' ;                          \
             qexpr  : '{' <expr>* '}' ;                          \
             expr   : <number> | <symbol> | <sexpr> | <qexpr> ;  \
