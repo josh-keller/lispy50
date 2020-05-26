@@ -338,11 +338,13 @@ void lenv_put(lenv* e, lval* k, lval* v) {
 
 lval* lval_eval(lenv* e, lval* v);
 
+/* Takes arguments and returns a Q-Expression containing those arguments */
 lval* builtin_list(lenv* e, lval* a) {
     a->type = LVAL_QEXPR;
     return a;
 }
 
+/* Returns the first element of a Q-Expression */
 lval* builtin_head(lenv* e, lval* a) {
     LASSERT_NUM("head", a, 1);
     LASSERT_TYPE("head", a, 0, LVAL_QEXPR);
@@ -353,6 +355,7 @@ lval* builtin_head(lenv* e, lval* a) {
     return v;
 }
 
+/* Returns all but the first element of a Q-Expression */
 lval* builtin_tail(lenv* e, lval* a) {
     LASSERT_NUM("tail", a, 1);
     LASSERT_TYPE("tail", a, 0, LVAL_QEXPR);
@@ -363,6 +366,7 @@ lval* builtin_tail(lenv* e, lval* a) {
     return v;
 }
 
+/* Takes a Q-Expr and evaluates it as if it were an S-Expr */
 lval* builtin_eval(lenv* e, lval* a) {
     LASSERT_NUM("eval", a, 1);
     LASSERT_TYPE("eval", a, 0, LVAL_QEXPR);
@@ -372,6 +376,7 @@ lval* builtin_eval(lenv* e, lval* a) {
     return lval_eval(e, x);
 }
 
+/* Takes one or more Q-Expressions and returns a Q-Expr with them joined together */
 lval* builtin_join(lenv* e, lval* a) {
     
     for (int i = 0; i < a->count; i++) {
@@ -390,6 +395,7 @@ lval* builtin_join(lenv* e, lval* a) {
 }
 
 
+/* Evaluates basic math operations on integers */
 lval* builtin_op_i(lenv* e, lval* a, char* op) {
     for (int i = 0; i < a->count; i++) {
         LASSERT_TYPE("builtin_op_i", a, i, LVAL_INT)
@@ -449,6 +455,7 @@ lval* builtin_op_i(lenv* e, lval* a, char* op) {
 }
 
 
+/* Evaluates basic math operations on decimals */
 lval* builtin_op_d(lenv* e, lval* a, char* op) {
     for (int i = 0; i < a->count; i++) {
         LASSERT_TYPE("builtin_op_d", a, i, LVAL_DEC)
@@ -504,6 +511,9 @@ lval* builtin_op_d(lenv* e, lval* a, char* op) {
     return x;
 }
 
+
+/* Evaluates basic math operations by converting (if necessary) 
+ * and calling integer or decimal functions */
 lval* builtin_op(lenv* e, lval* a, char* op) {
     // check that all members of expression are integer or decimal
     bool i = false, d = false;
