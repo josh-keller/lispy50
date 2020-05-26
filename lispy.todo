@@ -1,11 +1,11 @@
-Chapter 8
-x Can you use a union in the definition of lval?
-x Extend parsing and evaluation to support decimals using a double field.
-
-Chapter 10
+BUILTIN FUNCTIONS
 > Add a builtin function cons takes a value and a Q-Expression and appends it to the front.
 > Add a builtin function len that returns the number of elements in a Q-Expression.
 > Add a builtin function init that returns all of a Q-Expression except the final element.
+
+MATH FUNCTIONS:
+> Fix pow function so that it works for negative exponents and returns a decimal
+> 
 
 Chapter 11
 › Change printing a builtin function so that it prints its name.
@@ -15,14 +15,3 @@ Chapter 11
 › Create an exit function for stopping the prompt and exiting.
 
 
-Operator:
-- If all nums are int, use function as is
-- If all nums are float, need new function
-- If some are float and some are num, convert to float?
-    * Addition, yes.
-    * Subraction, yes
-    * Mult, yes
-    * Div, yes
-    * Mod, error
-    * Pow, yes
-    * Min/Max - no, but return the right  

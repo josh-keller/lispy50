@@ -1,4 +1,5 @@
 #include "mpc.h"
+#include <stdbool.h>
 
 #ifdef _WIN32
 
@@ -388,13 +389,13 @@ lval* builtin_join(lenv* e, lval* a) {
     return x;
 }
 
-lval* builtin_op(lenv* e, lval* a, char* op) {
-    // this needs to change 
-    for (int i = 0; i < a->count; i++) {
-        LASSERT_TYPE(op, a, i, LVAL_INT);
-    }
 
-     
+lval* builtin_op_i(lenv* e, lval* a, char* op) {
+    for (int i = 0; i < a->count; i++) {
+        LASSERT_TYPE("builtin_op_i", a, i, LVAL_INT)
+    }   
+
+    // pop the first value into a temporary variable  
     lval* x = lval_pop(a, 0);
 
     // put the value into another variable? 
@@ -446,6 +447,110 @@ lval* builtin_op(lenv* e, lval* a, char* op) {
     lval_del(a);
     return x;
 }
+
+
+lval* builtin_op_d(lenv* e, lval* a, char* op) {
+    for (int i = 0; i < a->count; i++) {
+        LASSERT_TYPE("builtin_op_d", a, i, LVAL_DEC)
+    }   
+
+    // pop the first value into a temporary variable  
+    lval* x = lval_pop(a, 0);
+
+    // put the value into another variable? 
+    if ((strcmp(op, "-") == 0) && a->count == 0) {
+        x->data.decimal = -x->data.decimal;
+    }
+    
+    while (a->count > 0) {  
+        lval* y = lval_pop(a, 0);
+        
+        if (strcmp(op, "+") == 0) { x->data.decimal += y->data.decimal; }
+        if (strcmp(op, "-") == 0) { x->data.decimal -= y->data.decimal; }
+        if (strcmp(op, "*") == 0) { x->data.decimal *= y->data.decimal; }
+        if (strcmp(op, "/") == 0) {
+            if (y->data.decimal == 0) {
+                lval_del(x); lval_del(y);
+                x = lval_err("Division By Zero.");
+                break;
+            }
+            x->data.decimal /= y->data.decimal;
+        }
+        if (strcmp(op, "%") == 0) {
+            lval_del(x); lval_del(y);
+            x = lval_err("Mod is invalid operation on decimal.");
+            break;
+        }   
+        if (strcmp(op, "^") == 0) { 
+            if (y->data.decimal < 0) {
+                lval_del(x); lval_del(y);
+                x = lval_err("Unable to raise to negative power.");
+                break;
+            }
+            x->data.decimal = pow(x->data.decimal, y->data.decimal);
+        }
+        if (strcmp(op, "min") == 0) {
+            if (y->data.decimal < x->data.decimal) { x->data.decimal = y->data.decimal; }
+        }
+        if (strcmp(op, "max") == 0) {
+            if (y->data.decimal > x->data.decimal) { x->data.decimal = y->data.decimal; }
+        }
+        
+
+        lval_del(y);
+    }
+    
+    lval_del(a);
+    return x;
+}
+
+lval* builtin_op(lenv* e, lval* a, char* op) {
+    // check that all members of expression are integer or decimal
+    bool i = false, d = false;
+    for (int j = 0; j < a->count; j++) {
+        if (a->data.cell[j]->type == LVAL_INT) {
+            i = true;
+        }
+        else if (a->data.cell[j]->type == LVAL_DEC) {
+            d = true;
+        }
+        else {
+            lval *err = lval_err("Type error: expected Integer or Decimal, got %s.\n", ltype_name(a->data.cell[j]->type));
+            lval_del(a);
+            return err; 
+        }
+    }
+    
+    if (i && !d) {
+        return builtin_op_i(e, a, op);
+    }
+    
+    // if sexpr contains both integers and decimals,
+    // convert all integers and call lval_eval_d
+    else if (i && d) {
+        // create a new sexpr
+        lval *s = lval_sexpr();
+        
+        // pop each value in a
+        do {
+           lval *v = lval_pop(a, 0);
+           // if it is an integer, create a new lval_dec and cast the value
+           if (v->type == LVAL_INT) {
+               lval* temp = lval_dec((float) v->data.integer);
+               lval_del(v);
+               v = temp;
+           }
+           lval_add(s, v);
+        } while (a->count > 0);
+
+        lval_del(a);
+        return builtin_op_d(e, s, op);
+    }
+    else {
+        return builtin_op_d(e, a, op);
+    }    
+}
+
 
 lval* builtin_add(lenv* e, lval* a) {
     return builtin_op(e, a, "+");
@@ -590,14 +695,11 @@ lval* lval_eval(lenv* e, lval* v) {
 
 lval* lval_read_num(mpc_ast_t* t) {
     errno = 0;
-    printf("lval_read_num: %s", t->contents);
     if (strchr(t->contents, '.') != NULL) {
-        printf("...decimal\n");
         double d = strtof(t->contents, NULL);
         return errno != ERANGE ? lval_dec(d) : lval_err("Invalid number.");
     }
     else {
-        printf("...integer\n");
         long x = strtol(t->contents, NULL, 10);
         return errno != ERANGE ? lval_int(x) : lval_err("Invalid Number.");
     }
@@ -605,7 +707,6 @@ lval* lval_read_num(mpc_ast_t* t) {
 }
 
 lval* lval_read(mpc_ast_t* t) {
-    printf("lval_read: %s\n", t->tag); 
     if (strstr(t->tag, "number")) { return lval_read_num(t); }
     if (strstr(t->tag, "symbol")) { return lval_sym(t->contents); }
     
