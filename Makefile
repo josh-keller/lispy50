@@ -9,4 +9,5 @@ lispy.o: lispy.c mpc.h
 mpc.o: mpc.c mpc.h
 	cc -std=c99 -c -Wall mpc.c
 
-
+clean:
+	rm *.o lispy
