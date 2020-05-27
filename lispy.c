@@ -211,6 +211,8 @@ lval* lval_take(lval* v, int i) {
 
 void lval_print(lval* v);
 
+char* func_name(lval* func); 
+
 /* Prints an expression */
 void lval_print_expr(lval* v, char open, char close) {
     putchar(open);
@@ -226,7 +228,7 @@ void lval_print_expr(lval* v, char open, char close) {
 /* Prints an lval */
 void lval_print(lval* v) {
     switch (v->type) {
-        case LVAL_FUN:   printf("<function>"); break;
+        case LVAL_FUN:   printf("%s", func_name(v)); break;
         case LVAL_INT:   printf("%li", v->data.integer); break;
         case LVAL_DEC:   printf("%f", v->data.decimal); break;
         case LVAL_ERR:   printf("Error: %s", v->data.err); break;
@@ -669,6 +671,28 @@ lval* builtin_def(lenv* e, lval* a) {
     
     lval_del(a);
     return lval_sexpr();
+}
+
+
+char* func_name(lval* func) {
+        if (func->data.fun ==  builtin_add) return "add";
+        else if (func->data.fun ==  builtin_sub) return "sub";
+        else if (func->data.fun ==  builtin_mul) return "mul";
+        else if (func->data.fun ==  builtin_div) return "div";
+        else if (func->data.fun ==  builtin_mod) return "mod";
+        else if (func->data.fun ==  builtin_pow) return "pow";
+        else if (func->data.fun ==  builtin_min) return "min";
+        else if (func->data.fun ==  builtin_max) return "max";
+        else if (func->data.fun ==  builtin_list) return "list";
+        else if (func->data.fun ==  builtin_head) return "head";
+        else if (func->data.fun ==  builtin_tail) return "tail";
+        else if (func->data.fun ==  builtin_eval) return "eval";
+        else if (func->data.fun ==  builtin_join) return "join";
+        else if (func->data.fun ==  builtin_cons) return "cons";
+        else if (func->data.fun ==  builtin_init) return "init";
+        else if (func->data.fun ==  builtin_len) return "len";
+        else if (func->data.fun ==  builtin_def) return "def";
+        else return "<function>";
 }
 
 void lenv_add_builtin(lenv* e, char* name, lbuiltin func) {

@@ -1,9 +1,17 @@
+Adding a function:
+1. Write the function
+2. Add to lenv_add_builtins
+3. Add to func_name
+4. ?
+
 MATH FUNCTIONS:
 > Fix pow function so that it works for negative exponents and returns a decimal
 > 
 
 Chapter 11
 › Change printing a builtin function so that it prints its name.
+--> add other builtin functions to the func_name function
+
 › Write a function for printing out all the named values in an environment.
 › Redefine one of the builtin variables to something different.
 › Change redefinition of one of the builtin variables to something different an error.
