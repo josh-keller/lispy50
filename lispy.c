@@ -117,6 +117,7 @@ lval* lval_qexpr(void) {
     return v;
 }
 
+/* Recursively deletes an lval */
 void lval_del(lval* v) {
 
     switch (v->type) {
@@ -137,6 +138,7 @@ void lval_del(lval* v) {
     free(v);
 }
 
+/* Returns a copy of the lval passed as an argument */
 lval* lval_copy(lval* v) {
 
     lval* x = malloc(sizeof(lval));
@@ -172,6 +174,7 @@ lval* lval_copy(lval* v) {
     return x;
 }
 
+/* Adds an element (x) to lval v */
 lval* lval_add(lval* v, lval* x) {
     v->count++;
     v->data.cell = realloc(v->data.cell, sizeof(lval*) * v->count);
@@ -179,6 +182,7 @@ lval* lval_add(lval* v, lval* x) {
     return v;
 }
 
+/* Joins lval y to lval x, deleting y */
 lval* lval_join(lval* x, lval* y) {  
     for (int i = 0; i < y->count; i++) {
         x = lval_add(x, y->data.cell[i]);
@@ -188,6 +192,7 @@ lval* lval_join(lval* x, lval* y) {
     return x;
 }
 
+/* Pops and returns the ith element of an lval */
 lval* lval_pop(lval* v, int i) {
     lval* x = v->data.cell[i];  
     memmove(&v->data.cell[i], &v->data.cell[i+1],
@@ -197,6 +202,7 @@ lval* lval_pop(lval* v, int i) {
     return x;
 }
 
+/* Returns the ith element of an lval, deleting the rest */
 lval* lval_take(lval* v, int i) {
     lval* x = lval_pop(v, i);
     lval_del(v);
@@ -205,6 +211,7 @@ lval* lval_take(lval* v, int i) {
 
 void lval_print(lval* v);
 
+/* Prints an expression */
 void lval_print_expr(lval* v, char open, char close) {
     putchar(open);
     for (int i = 0; i < v->count; i++) {
@@ -216,6 +223,7 @@ void lval_print_expr(lval* v, char open, char close) {
     putchar(close);
 }
 
+/* Prints an lval */
 void lval_print(lval* v) {
     switch (v->type) {
         case LVAL_FUN:   printf("<function>"); break;
@@ -230,6 +238,7 @@ void lval_print(lval* v) {
 
 void lval_println(lval* v) { lval_print(v); putchar('\n'); }
 
+/* Returns the string name of an lval type */
 char* ltype_name(int t) {
     switch(t) {
         case LVAL_FUN: return "Function";
@@ -251,6 +260,7 @@ struct lenv {
     lval** vals;
 };
 
+/* Creates a new environment */
 lenv* lenv_new(void) {
 
     /* Initialize struct */
@@ -262,6 +272,7 @@ lenv* lenv_new(void) {
     
 }
 
+/* Deletes the environment */
 void lenv_del(lenv* e) {
     
     /* Iterate over all items in environment deleting them */
@@ -276,6 +287,7 @@ void lenv_del(lenv* e) {
     free(e);
 }
 
+/* Returns the value for a symbol in the environment */
 lval* lenv_get(lenv* e, lval* k) {
     
     /* Iterate over all items in environment */
@@ -290,6 +302,8 @@ lval* lenv_get(lenv* e, lval* k) {
     return lval_err("Unbound Symbol '%s'", k->data.sym);
 }
 
+/* Puts a symbol and a value into the environment or
+ * if the sybol exists, changes the value */
 void lenv_put(lenv* e, lval* k, lval* v) {
     
     /* Iterate over all items in environment */
@@ -394,6 +408,39 @@ lval* builtin_join(lenv* e, lval* a) {
     return x;
 }
 
+/* Returns the number of elements in a Q-Expr */
+lval* builtin_len(lenv* e, lval* a) {
+    LASSERT_TYPE("len", a, 0, LVAL_QEXPR)
+    lval* x = lval_int(a->data.cell[0]->count);
+    lval_del(a);
+    return x;
+}
+
+/* Returns all of a Q-Expr except the final element */
+lval* builtin_init(lenv* e, lval* a) {
+    LASSERT_TYPE("init", a, 0, LVAL_QEXPR)
+    LASSERT_NUM("init", a, 1)
+
+    lval* x = lval_copy(a->data.cell[0]);
+
+    lval* y = lval_pop(x, x->count - 1);
+    lval_del(y);
+    lval_del(a);
+    return x;
+}
+
+/* Takes a value and Q-Expr and appends value to the front */
+lval* builtin_cons(lenv* e, lval* a) {
+    LASSERT_NUM("cons", a, 2)
+    LASSERT_TYPE("cons", a, 1, LVAL_QEXPR)
+
+    lval* q = lval_qexpr();
+    lval_add(q, lval_pop(a, 0));
+
+    q = lval_join(q, lval_take(a, 0));
+
+    return q;
+}
 
 /* Evaluates basic math operations on integers */
 lval* builtin_op_i(lenv* e, lval* a, char* op) {
@@ -641,7 +688,10 @@ void lenv_add_builtins(lenv* e) {
     lenv_add_builtin(e, "tail", builtin_tail);
     lenv_add_builtin(e, "eval", builtin_eval);
     lenv_add_builtin(e, "join", builtin_join);
-    
+    lenv_add_builtin(e, "cons", builtin_cons);
+    lenv_add_builtin(e, "init", builtin_init);
+    lenv_add_builtin(e, "len", builtin_len); 
+
     /* Mathematical Functions */
     lenv_add_builtin(e, "+", builtin_add);
     lenv_add_builtin(e, "add", builtin_add);
