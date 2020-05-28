@@ -8,10 +8,6 @@ MATH FUNCTIONS:
 > Fix pow function so that it works for negative exponents and returns a decimal
 > 
 
-Chapter 11
-› Change printing a builtin function so that it prints its name.
---> add other builtin functions to the func_name function
-
 › Write a function for printing out all the named values in an environment.
 › Redefine one of the builtin variables to something different.
 › Change redefinition of one of the builtin variables to something different an error.
@@ -21,3 +17,4 @@ DONE
 x Add a builtin function cons takes a value and a Q-Expression and appends it to the front.
 x Add a builtin function len that returns the number of elements in a Q-Expression.
 x Add a builtin function init that returns all of a Q-Expression except the final element.
+x Change printing a builtin function so that it prints its name.

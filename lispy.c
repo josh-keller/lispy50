@@ -289,9 +289,16 @@ void lenv_del(lenv* e) {
     free(e);
 }
 
+lval* builtin_env(lenv* e, lval* a);
+
 /* Returns the value for a symbol in the environment */
 lval* lenv_get(lenv* e, lval* k) {
     
+    //Check if symbol is "env", in which case call the function
+    if (strcmp(k->data.sym, "env") == 0) {
+        return builtin_env(e, k);
+    }
+
     /* Iterate over all items in environment */
     for (int i = 0; i < e->count; i++) {
         /* Check if the stored string matches the symbol string */
@@ -444,6 +451,21 @@ lval* builtin_cons(lenv* e, lval* a) {
     return q;
 }
 
+/* Prints out all the named values in an environment */
+lval* builtin_env(lenv* e, lval* a) {
+    lval* x = lval_qexpr();
+    lval* y;
+
+    for (int i = 0; i < e->count; i++) {
+        y = lval_qexpr();
+        lval_add(y, lval_sym(e->syms[i]));
+        lval_add(y, lval_copy(e->vals[i]));
+        lval_add(x, y);
+    }
+
+    return x;
+}
+        
 /* Evaluates basic math operations on integers */
 lval* builtin_op_i(lenv* e, lval* a, char* op) {
     for (int i = 0; i < a->count; i++) {
@@ -692,6 +714,7 @@ char* func_name(lval* func) {
         else if (func->data.fun ==  builtin_init) return "init";
         else if (func->data.fun ==  builtin_len) return "len";
         else if (func->data.fun ==  builtin_def) return "def";
+        else if (func->data.fun ==  builtin_env) return "env";
         else return "<function>";
 }
 
@@ -705,6 +728,7 @@ void lenv_add_builtin(lenv* e, char* name, lbuiltin func) {
 void lenv_add_builtins(lenv* e) {
     /* Variable Functions */
     lenv_add_builtin(e, "def", builtin_def);
+    lenv_add_builtin(e, "env", builtin_env);
     
     /* List Functions */
     lenv_add_builtin(e, "list", builtin_list);
@@ -737,14 +761,17 @@ void lenv_add_builtins(lenv* e) {
 
 lval* lval_eval_sexpr(lenv* e, lval* v) {
     
+    // Evaluate each cell in the sexpr 
     for (int i = 0; i < v->count; i++) {
         v->data.cell[i] = lval_eval(e, v->data.cell[i]);
     }
     
+    // If there are any errors after evaluation, return that error
     for (int i = 0; i < v->count; i++) {
         if (v->data.cell[i]->type == LVAL_ERR) { return lval_take(v, i); }
     }
     
+    // Return empty expression or single lval expression directly
     if (v->count == 0) { return v; }  
     if (v->count == 1) { return lval_take(v, 0); }
     
