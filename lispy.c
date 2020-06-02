@@ -875,13 +875,21 @@ lval* builtin_cond_i(lenv* e, lval* v1, lval* v2, char* op) {
     else if (strcmp(op, ">") == 0) {
         x->data.boolean = v1->data.integer > v2->data.integer;
     }
+    else if (strcmp(op, ">=") == 0) {
+        x->data.boolean = v1->data.integer >= v2->data.integer;
+    }
+    else if (strcmp(op, "<=") == 0) {
+        x->data.boolean = v1->data.integer <= v2->data.integer;
+    }
     else if (strcmp(op, "==") == 0) {
         x->data.boolean = v1->data.integer == v2->data.integer;
+    }
+    else if (strcmp(op, "!=") == 0) {
+        x->data.boolean = v1->data.integer != v2->data.integer;
     }
 
     lval_del(v1); lval_del(v2);
     return x;
-
 }
 
 lval* builtin_cond(lenv* e, lval* a, char* op) {
@@ -902,8 +910,6 @@ lval* builtin_cond(lenv* e, lval* a, char* op) {
         return e;
     }
 }
-
-
 
 lval* builtin_add(lenv* e, lval* a) {
     return builtin_op(e, a, "+");
@@ -949,6 +955,54 @@ lval* builtin_equal(lenv* e, lval* a) {
     return builtin_cond(e, a, "==");
 }
 
+lval* builtin_lessorequal(lenv* e, lval* a) {
+    return builtin_cond(e, a, "<=");
+}
+
+lval* builtin_greaterorequal(lenv* e, lval* a) {
+    return builtin_cond(e, a, ">=");
+}
+
+lval* builtin_notequal(lenv* e, lval* a) {
+    return builtin_cond(e, a, "!=");
+}
+
+lval* builtin_if(lenv* e, lval* a) {
+    LASSERT_NUM("if", a, 3);
+    LASSERT_TYPE("if", a, 0, LVAL_BOOL);
+    LASSERT_TYPE("if", a, 1, LVAL_QEXPR);
+    LASSERT_TYPE("if", a, 2, LVAL_QEXPR);
+
+    lval* b = lval_pop(a, 0);
+
+    if (b->data.boolean) {
+        // Take first expression and evaluate it
+        lval* s = lval_take(a, 0);
+        s->type = LVAL_SEXPR;
+        return lval_eval(e, s);
+    }
+    else {
+        // Take the second expression and evaluate it
+        lval* s = lval_take(a, 1);
+        s->type = LVAL_SEXPR;
+        return lval_eval(e, s);
+    }
+}
+
+lval* builtin_not(lenv* e, lval* a) {
+    LASSERT_NUM("not", a, 1);
+    LASSERT_TYPE("not", a, 0, LVAL_BOOL);
+
+    if (a->cell[0]->data.boolean) {
+        lval_del(a);
+        return lval_bool(0);
+    }
+    else {
+        lval_del(a);
+        return lval_bool(1);
+    }
+}
+
 lval* builtin_var(lenv* e, lval* a, char* func) {
     LASSERT_TYPE("def", a, 0, LVAL_QEXPR);
     
@@ -982,7 +1036,6 @@ lval* builtin_var(lenv* e, lval* a, char* func) {
     lval_del(a);
     return lval_sexpr();
 }
-
 
 lval* builtin_def(lenv* e, lval* a) {
     return builtin_var(e, a, "def");
@@ -1019,6 +1072,11 @@ char* func_name(lval* func) {
         else if (func->builtin == builtin_lessthan) return "<";
         else if (func->builtin == builtin_greaterthan) return ">";
         else if (func->builtin == builtin_equal) return "==";
+        else if (func->builtin == builtin_notequal) return "!=";
+        else if (func->builtin == builtin_lessorequal) return "<=";
+        else if (func->builtin == builtin_greaterorequal) return ">=";
+        else if (func->builtin == builtin_if) return "if";
+        else if (func->builtin == builtin_not) return "not";
         else return "<function>";
 }
 
@@ -1069,6 +1127,11 @@ void lenv_add_builtins(lenv* e) {
     lenv_add_builtin(e, "<", builtin_lessthan);
     lenv_add_builtin(e, ">", builtin_greaterthan);
     lenv_add_builtin(e, "==", builtin_equal);
+    lenv_add_builtin(e, "!=", builtin_notequal);
+    lenv_add_builtin(e, "<=", builtin_lessorequal);
+    lenv_add_builtin(e, ">=", builtin_greaterorequal);
+    lenv_add_builtin(e, "if", builtin_if);
+    lenv_add_builtin(e, "not", builtin_not);
 }
 
 /* Evaluation */
@@ -1132,7 +1195,11 @@ lval* lval_read_num(mpc_ast_t* t) {
 
 lval* lval_read(mpc_ast_t* t) {
     if (strstr(t->tag, "number")) { return lval_read_num(t); }
-    if (strstr(t->tag, "symbol")) { return lval_sym(t->contents); }
+    if (strstr(t->tag, "symbol")) { 
+        if (strcmp(t->contents, "true") == 0) { return lval_bool(true); }
+        else if (strcmp(t->contents, "false") == 0) { return lval_bool(false); }
+        else { return lval_sym(t->contents); }
+    }
     
     lval* x = NULL;
     if (strcmp(t->tag, ">") == 0) { x = lval_sexpr(); } 
@@ -1178,8 +1245,6 @@ int main(int argc, char** argv) {
     
     lenv* e = lenv_new();
     lenv_add_builtins(e);
-    lenv_put(e, lval_sym("true"), lval_bool(true));
-    lenv_put(e, lval_sym("false"), lval_bool(false));
 
     bool quit = false;
 
