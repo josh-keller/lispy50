@@ -989,6 +989,33 @@ lval* builtin_if(lenv* e, lval* a) {
     }
 }
 
+lval* builtin_xor(lenv* e, lval* a, char* op) {
+    LASSERT_NUM("or", a, 2);
+    LASSERT_TYPE("or", a, 0, LVAL_BOOL);
+    LASSERT_TYPE("or", a, 1, LVAL_BOOL);
+
+    lval* x = lval_pop(a, 0);
+    lval* y = lval_take(a, 0);
+    lval* b;
+
+    if (strcmp(op, "||") == 0) {
+        b = lval_bool(x->data.boolean || y->data.boolean);
+    }
+    else if (strcmp(op, "&&") == 0) {
+        b = lval_bool(x->data.boolean && y->data.boolean);
+    }
+    lval_del(x); lval_del(y);
+    return b;
+}
+
+lval* builtin_or(lenv* e, lval* a) {
+    return builtin_xor(e, a, "||");
+}
+
+lval* builtin_and(lenv* e, lval* a) {
+    return builtin_xor(e, a, "&&");
+}
+
 lval* builtin_not(lenv* e, lval* a) {
     LASSERT_NUM("not", a, 1);
     LASSERT_TYPE("not", a, 0, LVAL_BOOL);
@@ -1077,6 +1104,8 @@ char* func_name(lval* func) {
         else if (func->builtin == builtin_greaterorequal) return ">=";
         else if (func->builtin == builtin_if) return "if";
         else if (func->builtin == builtin_not) return "not";
+        else if (func->builtin == builtin_or) return "or";
+        else if (func->builtin == builtin_and) return "and";
         else return "<function>";
 }
 
@@ -1132,6 +1161,9 @@ void lenv_add_builtins(lenv* e) {
     lenv_add_builtin(e, ">=", builtin_greaterorequal);
     lenv_add_builtin(e, "if", builtin_if);
     lenv_add_builtin(e, "not", builtin_not);
+    lenv_add_builtin(e, "!", builtin_not);
+    lenv_add_builtin(e, "||", builtin_or);
+    lenv_add_builtin(e, "&&", builtin_and);
 }
 
 /* Evaluation */
@@ -1232,7 +1264,7 @@ int main(int argc, char** argv) {
     mpca_lang(MPCA_LANG_DEFAULT,
         "                                                       \
             number : /-?(([0-9]*[.])?[0-9]+([.][0-9]*)?)/ ;     \
-            symbol : /[a-zA-Z0-9_+\\-*\\/\%^\\\\=<>!&]+/ ;      \
+            symbol : /[a-zA-Z0-9_+\\-*\\/\%^\\\\=<>!&|]+/ ;     \
             sexpr  : '(' <expr>* ')' ;                          \
             qexpr  : '{' <expr>* '}' ;                          \
             expr   : <number> | <symbol> | <sexpr> | <qexpr> ;  \
