@@ -920,6 +920,31 @@ lval* builtin_put(lenv* e, lval* a) {
 }
 
 
+lval* builtin_fun(lenv* e, lval* a) {
+    LASSERT_NUM("fun", a, 2);
+    LASSERT_TYPE("fun", a, 0, LVAL_QEXPR);
+    LASSERT_TYPE("fun", a, 1, LVAL_QEXPR);
+
+    // Pop name off the first qexpr
+    lval* name = lval_qexpr();
+    name = lval_add(name, lval_pop(a->cell[0], 0));
+    
+    // First element of l_args (formals) is rest of first qexpr
+    lval* l_args = lval_qexpr();
+    l_args = lval_add(l_args, lval_pop(a, 0));
+    // Add body of function to l_args
+    l_args = lval_add(l_args, lval_take(a, 0));
+
+    // Create lambda function
+    lval* lambda = builtin_lambda(e, l_args);
+    // Add name to lambda to pass to def
+    lval* x = lval_qexpr();
+    x = lval_add(x, name);
+    x = lval_add(x, lambda);
+
+    return builtin_def(e, x);
+}
+
 
 char* func_name(lval* func) {
         if (func->builtin ==  builtin_add) return "add";
@@ -941,6 +966,9 @@ char* func_name(lval* func) {
         else if (func->builtin ==  builtin_def) return "def";
         else if (func->builtin ==  builtin_env) return "env";
         else if (func->builtin ==  builtin_exit) return "exit";
+        else if (func->builtin ==  builtin_fun) return "fun";
+        else if (func->builtin ==  builtin_lambda) return "lambda";
+        else if (func->builtin ==  builtin_put) return "=";
         else return "<function>";
 }
 
@@ -960,6 +988,7 @@ void lenv_add_builtins(lenv* e) {
     lenv_add_builtin(e, "=", builtin_put);
     lenv_add_builtin(e, "env", builtin_env);
     lenv_add_builtin(e, "\\", builtin_lambda);
+    lenv_add_builtin(e, "fun", builtin_fun);
     
     /* List Functions */
     lenv_add_builtin(e, "list", builtin_list);
