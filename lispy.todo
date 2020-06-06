@@ -1,3 +1,16 @@
+Conditionals:
+x Not operator
+> Add decimal functionality for comparison operators
+> Add additional functionality for equality operators.
+› Create builtin logical operators or ||, and && and not ! and add them to the language.
+› Define a recursive Lisp function that returns the nth item of that list.
+› Define a recursive Lisp function that returns 1 if an element is a member of a list, otherwise 0.
+› Define a Lisp function that returns the last element of a list.
+› Define in Lisp logical operator functions such as or, and and not.
+x Add a specific boolean type to the language with the builtin variables true and false.
+x Builtins: <=, >=, !=
+x If function
+
 Fixes:
 > Fix pow function so that it works for negative exponents and returns a decimal
 x Add lambda and = to builtin names

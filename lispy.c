@@ -30,7 +30,7 @@ typedef struct lenv lenv;
 
 /* Lisp Value */
 
-enum { LVAL_ERR, LVAL_INT, LVAL_DEC,  LVAL_SYM, 
+enum { LVAL_ERR, LVAL_INT, LVAL_DEC, LVAL_BOOL, LVAL_SYM, 
               LVAL_FUN, LVAL_SEXPR, LVAL_QEXPR };
 
 typedef lval*(*lbuiltin)(lenv*, lval*);
@@ -42,6 +42,7 @@ struct lval {
     union {
         long integer;
         double decimal;
+        bool boolean;
         char* sym;
         char* err;
     } data;
@@ -69,6 +70,13 @@ lval* lval_dec(double x) {
     v->type = LVAL_DEC;
     v->data.decimal = x;
     return v;
+}
+
+lval* lval_bool(bool boolean) {
+    lval* b = malloc(sizeof(lval));
+    b->type = LVAL_BOOL;
+    b->data.boolean = boolean;
+    return b;
 }
 
 lval* lval_err(char* fmt, ...) {
@@ -148,6 +156,7 @@ void lval_del(lval* v) {
     switch (v->type) {
         case LVAL_INT: break;
         case LVAL_DEC: break;
+        case LVAL_BOOL: break;
         case LVAL_FUN: 
             if (!v->builtin) {
                 lval_del(v->formals);
@@ -179,10 +188,10 @@ lval* lval_copy(lval* v) {
     
     switch (v->type) {
         
-        /* Copy Numbers Directly */
+        /* Copy Numbers and Bools Directly */
         case LVAL_DEC: x->data.decimal = v->data.decimal; break;
         case LVAL_INT: x->data.integer = v->data.integer; break;
-        
+        case LVAL_BOOL: x->data.boolean = v->data.boolean; break; 
         
         case LVAL_FUN: 
             if (v->builtin) {
@@ -287,6 +296,7 @@ void lval_print(lval* v) {
             break;
         case LVAL_INT:   printf("%li", v->data.integer); break;
         case LVAL_DEC:   printf("%f", v->data.decimal); break;
+        case LVAL_BOOL:  printf("%s", v->data.boolean ? "true" : "false"); break;
         case LVAL_ERR:   printf("Error: %s", v->data.err); break;
         case LVAL_SYM:   printf("%s", v->data.sym); break;
         case LVAL_SEXPR: lval_print_expr(v, '(', ')'); break;
@@ -304,6 +314,7 @@ char* ltype_name(int t) {
     switch(t) {
         case LVAL_FUN: return "Function";
         case LVAL_INT: return "Number";
+        case LVAL_BOOL: return "Boolean";
         case LVAL_DEC: return "Decimal";
         case LVAL_ERR: return "Error";
         case LVAL_SYM: return "Symbol";
@@ -695,9 +706,9 @@ lval* builtin_op_i(lenv* e, lval* a, char* op) {
     while (a->count > 0) {  
         lval* y = lval_pop(a, 0);
         
-        if (strcmp(op, "+") == 0) { x->data.integer += y->data.integer; }
-        if (strcmp(op, "-") == 0) { x->data.integer -= y->data.integer; }
-        if (strcmp(op, "*") == 0) { x->data.integer *= y->data.integer; }
+        if (strcmp(op, "+") == 0) { x->data.integer += y->data.integer; continue; }
+        if (strcmp(op, "-") == 0) { x->data.integer -= y->data.integer; continue; }
+        if (strcmp(op, "*") == 0) { x->data.integer *= y->data.integer; continue; }
         if (strcmp(op, "/") == 0) {
             if (y->data.integer == 0) {
                 lval_del(x); lval_del(y);
@@ -705,6 +716,7 @@ lval* builtin_op_i(lenv* e, lval* a, char* op) {
                 break;
             }
             x->data.integer /= y->data.integer;
+            continue; 
         }
         if (strcmp(op, "%") == 0) {
             if (y->data.integer == 0) {
@@ -713,6 +725,7 @@ lval* builtin_op_i(lenv* e, lval* a, char* op) {
                 break;
             }
             x->data.integer %= y->data.integer;
+            continue; 
         }   
         if (strcmp(op, "^") == 0) { 
             if (y->data.integer < 0) {
@@ -721,12 +734,13 @@ lval* builtin_op_i(lenv* e, lval* a, char* op) {
                 break;
             }
             x->data.integer = pow(x->data.integer, y->data.integer);
+            continue; 
         }
         if (strcmp(op, "min") == 0) {
-            if (y->data.integer < x->data.integer) { x->data.integer = y->data.integer; }
+            if (y->data.integer < x->data.integer) { x->data.integer = y->data.integer; continue; }
         }
         if (strcmp(op, "max") == 0) {
-            if (y->data.integer > x->data.integer) { x->data.integer = y->data.integer; }
+            if (y->data.integer > x->data.integer) { x->data.integer = y->data.integer; continue; }
         }
         
 
@@ -755,9 +769,9 @@ lval* builtin_op_d(lenv* e, lval* a, char* op) {
     while (a->count > 0) {  
         lval* y = lval_pop(a, 0);
         
-        if (strcmp(op, "+") == 0) { x->data.decimal += y->data.decimal; }
-        if (strcmp(op, "-") == 0) { x->data.decimal -= y->data.decimal; }
-        if (strcmp(op, "*") == 0) { x->data.decimal *= y->data.decimal; }
+        if (strcmp(op, "+") == 0) { x->data.decimal += y->data.decimal; continue; }
+        if (strcmp(op, "-") == 0) { x->data.decimal -= y->data.decimal; continue; }
+        if (strcmp(op, "*") == 0) { x->data.decimal *= y->data.decimal; continue; }
         if (strcmp(op, "/") == 0) {
             if (y->data.decimal == 0) {
                 lval_del(x); lval_del(y);
@@ -765,6 +779,7 @@ lval* builtin_op_d(lenv* e, lval* a, char* op) {
                 break;
             }
             x->data.decimal /= y->data.decimal;
+            continue; 
         }
         if (strcmp(op, "%") == 0) {
             lval_del(x); lval_del(y);
@@ -778,14 +793,20 @@ lval* builtin_op_d(lenv* e, lval* a, char* op) {
                 break;
             }
             x->data.decimal = pow(x->data.decimal, y->data.decimal);
+            continue;            
         }
         if (strcmp(op, "min") == 0) {
-            if (y->data.decimal < x->data.decimal) { x->data.decimal = y->data.decimal; }
+            if (y->data.decimal < x->data.decimal) {
+                x->data.decimal = y->data.decimal;
+                continue;
+            }
         }
         if (strcmp(op, "max") == 0) {
-            if (y->data.decimal > x->data.decimal) { x->data.decimal = y->data.decimal; }
+            if (y->data.decimal > x->data.decimal) { 
+                x->data.decimal = y->data.decimal; 
+                continue; 
+            }
         }
-        
 
         lval_del(y);
     }
@@ -844,6 +865,51 @@ lval* builtin_op(lenv* e, lval* a, char* op) {
     }    
 }
 
+lval* builtin_cond_i(lenv* e, lval* v1, lval* v2, char* op) {
+    
+    lval* x = lval_bool(false);
+    
+    if (strcmp(op, "<") == 0) {
+        x->data.boolean = v1->data.integer < v2->data.integer;
+    }
+    else if (strcmp(op, ">") == 0) {
+        x->data.boolean = v1->data.integer > v2->data.integer;
+    }
+    else if (strcmp(op, ">=") == 0) {
+        x->data.boolean = v1->data.integer >= v2->data.integer;
+    }
+    else if (strcmp(op, "<=") == 0) {
+        x->data.boolean = v1->data.integer <= v2->data.integer;
+    }
+    else if (strcmp(op, "==") == 0) {
+        x->data.boolean = v1->data.integer == v2->data.integer;
+    }
+    else if (strcmp(op, "!=") == 0) {
+        x->data.boolean = v1->data.integer != v2->data.integer;
+    }
+
+    lval_del(v1); lval_del(v2);
+    return x;
+}
+
+lval* builtin_cond(lenv* e, lval* a, char* op) {
+    
+    // check that there are two values ****
+    LASSERT_NUM(op, a, 2);
+
+    lval* v1 = lval_pop(a, 0);
+    lval* v2 = lval_take(a, 0);
+    
+    if (v1->type == LVAL_INT && v2->type == LVAL_INT) {
+        return builtin_cond_i(e, v1, v2, op);
+    }
+    else {
+        lval* e = lval_err("Incorrect types (%s, %s) passed to %s.",
+                v1->type, v2->type, op);
+        lval_del(v1); lval_del(v2);
+        return e;
+    }
+}
 
 lval* builtin_add(lenv* e, lval* a) {
     return builtin_op(e, a, "+");
@@ -875,6 +941,93 @@ lval* builtin_max(lenv* e, lval* a) {
 
 lval* builtin_pow(lenv* e, lval* a) {
     return builtin_op(e, a, "^");
+}
+
+lval* builtin_lessthan(lenv* e, lval* a) {
+    return builtin_cond(e, a, "<");
+}
+
+lval* builtin_greaterthan(lenv* e, lval* a) {
+    return builtin_cond(e, a, ">");
+}
+
+lval* builtin_equal(lenv* e, lval* a) {
+    return builtin_cond(e, a, "==");
+}
+
+lval* builtin_lessorequal(lenv* e, lval* a) {
+    return builtin_cond(e, a, "<=");
+}
+
+lval* builtin_greaterorequal(lenv* e, lval* a) {
+    return builtin_cond(e, a, ">=");
+}
+
+lval* builtin_notequal(lenv* e, lval* a) {
+    return builtin_cond(e, a, "!=");
+}
+
+lval* builtin_if(lenv* e, lval* a) {
+    LASSERT_NUM("if", a, 3);
+    LASSERT_TYPE("if", a, 0, LVAL_BOOL);
+    LASSERT_TYPE("if", a, 1, LVAL_QEXPR);
+    LASSERT_TYPE("if", a, 2, LVAL_QEXPR);
+
+    lval* b = lval_pop(a, 0);
+
+    if (b->data.boolean) {
+        // Take first expression and evaluate it
+        lval* s = lval_take(a, 0);
+        s->type = LVAL_SEXPR;
+        return lval_eval(e, s);
+    }
+    else {
+        // Take the second expression and evaluate it
+        lval* s = lval_take(a, 1);
+        s->type = LVAL_SEXPR;
+        return lval_eval(e, s);
+    }
+}
+
+lval* builtin_xor(lenv* e, lval* a, char* op) {
+    LASSERT_NUM("or", a, 2);
+    LASSERT_TYPE("or", a, 0, LVAL_BOOL);
+    LASSERT_TYPE("or", a, 1, LVAL_BOOL);
+
+    lval* x = lval_pop(a, 0);
+    lval* y = lval_take(a, 0);
+    lval* b;
+
+    if (strcmp(op, "||") == 0) {
+        b = lval_bool(x->data.boolean || y->data.boolean);
+    }
+    else if (strcmp(op, "&&") == 0) {
+        b = lval_bool(x->data.boolean && y->data.boolean);
+    }
+    lval_del(x); lval_del(y);
+    return b;
+}
+
+lval* builtin_or(lenv* e, lval* a) {
+    return builtin_xor(e, a, "||");
+}
+
+lval* builtin_and(lenv* e, lval* a) {
+    return builtin_xor(e, a, "&&");
+}
+
+lval* builtin_not(lenv* e, lval* a) {
+    LASSERT_NUM("not", a, 1);
+    LASSERT_TYPE("not", a, 0, LVAL_BOOL);
+
+    if (a->cell[0]->data.boolean) {
+        lval_del(a);
+        return lval_bool(0);
+    }
+    else {
+        lval_del(a);
+        return lval_bool(1);
+    }
 }
 
 lval* builtin_var(lenv* e, lval* a, char* func) {
@@ -947,28 +1100,38 @@ lval* builtin_fun(lenv* e, lval* a) {
 
 
 char* func_name(lval* func) {
-        if (func->builtin ==  builtin_add) return "add";
-        else if (func->builtin ==  builtin_sub) return "sub";
-        else if (func->builtin ==  builtin_mul) return "mul";
-        else if (func->builtin ==  builtin_div) return "div";
-        else if (func->builtin ==  builtin_mod) return "mod";
-        else if (func->builtin ==  builtin_pow) return "pow";
-        else if (func->builtin ==  builtin_min) return "min";
-        else if (func->builtin ==  builtin_max) return "max";
-        else if (func->builtin ==  builtin_list) return "list";
-        else if (func->builtin ==  builtin_head) return "head";
-        else if (func->builtin ==  builtin_tail) return "tail";
-        else if (func->builtin ==  builtin_eval) return "eval";
-        else if (func->builtin ==  builtin_join) return "join";
-        else if (func->builtin ==  builtin_cons) return "cons";
-        else if (func->builtin ==  builtin_init) return "init";
-        else if (func->builtin ==  builtin_len) return "len";
-        else if (func->builtin ==  builtin_def) return "def";
-        else if (func->builtin ==  builtin_env) return "env";
-        else if (func->builtin ==  builtin_exit) return "exit";
-        else if (func->builtin ==  builtin_fun) return "fun";
-        else if (func->builtin ==  builtin_lambda) return "lambda";
-        else if (func->builtin ==  builtin_put) return "=";
+        if (func->builtin == builtin_add) return "add";
+        else if (func->builtin == builtin_sub) return "sub";
+        else if (func->builtin == builtin_mul) return "mul";
+        else if (func->builtin == builtin_div) return "div";
+        else if (func->builtin == builtin_mod) return "mod";
+        else if (func->builtin == builtin_pow) return "pow";
+        else if (func->builtin == builtin_min) return "min";
+        else if (func->builtin == builtin_max) return "max";
+        else if (func->builtin == builtin_list) return "list";
+        else if (func->builtin == builtin_head) return "head";
+        else if (func->builtin == builtin_tail) return "tail";
+        else if (func->builtin == builtin_eval) return "eval";
+        else if (func->builtin == builtin_join) return "join";
+        else if (func->builtin == builtin_cons) return "cons";
+        else if (func->builtin == builtin_init) return "init";
+        else if (func->builtin == builtin_len) return "len";
+        else if (func->builtin == builtin_def) return "def";
+        else if (func->builtin == builtin_env) return "env";
+        else if (func->builtin == builtin_exit) return "exit";
+        else if (func->builtin == builtin_lambda) return "lambda";
+        else if (func->builtin == builtin_put) return "=";
+        else if (func->builtin == builtin_lessthan) return "<";
+        else if (func->builtin == builtin_greaterthan) return ">";
+        else if (func->builtin == builtin_equal) return "==";
+        else if (func->builtin == builtin_notequal) return "!=";
+        else if (func->builtin == builtin_lessorequal) return "<=";
+        else if (func->builtin == builtin_greaterorequal) return ">=";
+        else if (func->builtin == builtin_if) return "if";
+        else if (func->builtin == builtin_not) return "not";
+        else if (func->builtin == builtin_or) return "or";
+        else if (func->builtin == builtin_and) return "and";
+        else if (func->builtin == builtin_fun) return "fun";
         else return "<function>";
 }
 
@@ -1015,6 +1178,19 @@ void lenv_add_builtins(lenv* e) {
     lenv_add_builtin(e, "pow", builtin_pow);
     lenv_add_builtin(e, "min", builtin_min);
     lenv_add_builtin(e, "max", builtin_max);
+
+    /* Conditional and Ordering Functions */
+    lenv_add_builtin(e, "<", builtin_lessthan);
+    lenv_add_builtin(e, ">", builtin_greaterthan);
+    lenv_add_builtin(e, "==", builtin_equal);
+    lenv_add_builtin(e, "!=", builtin_notequal);
+    lenv_add_builtin(e, "<=", builtin_lessorequal);
+    lenv_add_builtin(e, ">=", builtin_greaterorequal);
+    lenv_add_builtin(e, "if", builtin_if);
+    lenv_add_builtin(e, "not", builtin_not);
+    lenv_add_builtin(e, "!", builtin_not);
+    lenv_add_builtin(e, "||", builtin_or);
+    lenv_add_builtin(e, "&&", builtin_and);
 }
 
 /* Evaluation */
@@ -1078,7 +1254,11 @@ lval* lval_read_num(mpc_ast_t* t) {
 
 lval* lval_read(mpc_ast_t* t) {
     if (strstr(t->tag, "number")) { return lval_read_num(t); }
-    if (strstr(t->tag, "symbol")) { return lval_sym(t->contents); }
+    if (strstr(t->tag, "symbol")) { 
+        if (strcmp(t->contents, "true") == 0) { return lval_bool(true); }
+        else if (strcmp(t->contents, "false") == 0) { return lval_bool(false); }
+        else { return lval_sym(t->contents); }
+    }
     
     lval* x = NULL;
     if (strcmp(t->tag, ">") == 0) { x = lval_sexpr(); } 
@@ -1111,7 +1291,7 @@ int main(int argc, char** argv) {
     mpca_lang(MPCA_LANG_DEFAULT,
         "                                                       \
             number : /-?(([0-9]*[.])?[0-9]+([.][0-9]*)?)/ ;     \
-            symbol : /[a-zA-Z0-9_+\\-*\\/\%^\\\\=<>!&]+/ ;      \
+            symbol : /[a-zA-Z0-9_+\\-*\\/\%^\\\\=<>!&|]+/ ;     \
             sexpr  : '(' <expr>* ')' ;                          \
             qexpr  : '{' <expr>* '}' ;                          \
             expr   : <number> | <symbol> | <sexpr> | <qexpr> ;  \
@@ -1124,7 +1304,7 @@ int main(int argc, char** argv) {
     
     lenv* e = lenv_new();
     lenv_add_builtins(e);
-    
+
     bool quit = false;
 
     while (!quit) {
