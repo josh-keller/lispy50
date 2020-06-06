@@ -1030,6 +1030,25 @@ lval* builtin_not(lenv* e, lval* a) {
     }
 }
 
+bool is_builtin(lenv* e, lval* a) {
+    LASSERT(a, a->type == LVAL_SYM, "Function 'is_builtin' passed a non-function argument.");
+    // Iterate to the first parent environment
+    while (e->par) {
+        e = e->par;
+    }
+    // Find the symbol in the environment and check if builtin == NULL
+    for (int i = 0; i < e->count; i++) {
+        if (strcmp(a->data.sym, e->syms[i]) == 0) {
+            if (e->vals[i]->type == LVAL_FUN && e->vals[i]->builtin != NULL) {
+                return true; // Symbol found and builtin was not NULL
+            }
+            else { return false; } // Symbol found and builtin NULL
+        }
+    }
+
+    return false; // Symbol not found
+}
+
 lval* builtin_var(lenv* e, lval* a, char* func) {
     LASSERT_TYPE("def", a, 0, LVAL_QEXPR);
     
@@ -1042,6 +1061,12 @@ lval* builtin_var(lenv* e, lval* a, char* func) {
             "Function '%s' cannot define non-symbol. "
             "Got %s, Expected %s.", func,
             ltype_name(syms->cell[i]->type), ltype_name(LVAL_SYM));
+        if (is_builtin(e, syms->cell[i])) {
+            char name[strlen(syms->cell[i]->data.sym) + 1];
+            strcpy(name, syms->cell[i]->data.sym);
+            lval_del(a);
+            return lval_err("Invalid attempt to redefine builtin function %s.\n", name);
+        }
     }
     
     /* Check correct number of symbols and values */
