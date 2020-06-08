@@ -948,7 +948,7 @@ lval* builtin_greaterthan(lenv* e, lval* a) {
     return builtin_cond(e, a, ">");
 }
 
-bool lval_compare(lval* x, lval* y) {
+bool lval_eq(lval* x, lval* y) {
 
     // If two lvals are not the same type, return false.
     if (x->type != y->type) {
@@ -966,15 +966,15 @@ bool lval_compare(lval* x, lval* y) {
                        return x->builtin == y->builtin;
                    } 
                    else {
-                       return lval_compare(x->formals, y->formals) &&
-                          lval_compare(x->body, y->body); 
+                       return lval_eq(x->formals, y->formals) &&
+                          lval_eq(x->body, y->body); 
                    }
         case LVAL_QEXPR:
         case LVAL_SEXPR:
             if (x->count != y->count) { return false; }
             
             for (int i = 0; i < x->count; i++) {
-                if (!lval_compare(x->cell[i], y->cell[i])) {
+                if (!lval_eq(x->cell[i], y->cell[i])) {
                     return false;
                 }
             }
@@ -983,13 +983,23 @@ bool lval_compare(lval* x, lval* y) {
     }
 }
 
-lval* builtin_equal(lenv* e, lval* a) {
+lval* builtin_comp(lenv* e, lval* a, char* op) {
     LASSERT_NUM("==", a, 2);
     lval* x = lval_pop(a, 0);
     lval* y = lval_pop(a, 0);
-    lval* b = lval_bool(lval_compare(x, y));
+    bool b = lval_eq(x, y);
     lval_del(a); lval_del(x); lval_del(y);
-    return b;
+    if (strcmp(op, "==") == 0) { return lval_bool(b); }
+    if (strcmp(op, "!=") == 0) { return lval_bool(!b); }
+    else { return lval_err("Incorrect operator passed to builtin_comp."); }
+}
+
+lval* builtin_equal(lenv* e, lval* a) {
+    return builtin_comp(e, a, "==");
+}
+
+lval* builtin_notequal(lenv* e, lval* a) {
+    return builtin_comp(e, a, "!=");
 }
 
 lval* builtin_lessorequal(lenv* e, lval* a) {
@@ -998,10 +1008,6 @@ lval* builtin_lessorequal(lenv* e, lval* a) {
 
 lval* builtin_greaterorequal(lenv* e, lval* a) {
     return builtin_cond(e, a, ">=");
-}
-
-lval* builtin_notequal(lenv* e, lval* a) {
-    return builtin_cond(e, a, "!=");
 }
 
 lval* builtin_if(lenv* e, lval* a) {
