@@ -1,6 +1,5 @@
 Conditionals:
 > Add decimal functionality for comparison operators
-> Add additional functionality for equality operators.
 
 Fixes:
 > Fix pow function so that it works for negative exponents and returns a decimal
@@ -26,6 +25,7 @@ Adding a function:
 4. ?
 
 DONE:
+x Add additional functionality for equality operators.
 x Define a builtin_fun C function that is equivalent to the Lisp fun function.
 x Add lambda and = to builtin names
 x Add a specific boolean type to the language with the builtin variables true and false.

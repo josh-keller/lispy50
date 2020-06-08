@@ -881,9 +881,6 @@ lval* builtin_cond_i(lenv* e, lval* v1, lval* v2, char* op) {
     else if (strcmp(op, "<=") == 0) {
         x->data.boolean = v1->data.integer <= v2->data.integer;
     }
-    else if (strcmp(op, "==") == 0) {
-        x->data.boolean = v1->data.integer == v2->data.integer;
-    }
     else if (strcmp(op, "!=") == 0) {
         x->data.boolean = v1->data.integer != v2->data.integer;
     }
@@ -951,8 +948,48 @@ lval* builtin_greaterthan(lenv* e, lval* a) {
     return builtin_cond(e, a, ">");
 }
 
+bool lval_compare(lval* x, lval* y) {
+
+    // If two lvals are not the same type, return false.
+    if (x->type != y->type) {
+        return false;
+    }
+    
+    switch (x->type) {
+        case LVAL_INT: return (x->data.integer == y->data.integer);
+        case LVAL_DEC: return (x->data.decimal == y->data.decimal);
+        case LVAL_BOOL: return (x->data.boolean == y->data.boolean);
+        case LVAL_ERR: return (strcmp(x->data.err, y->data.err) == 0);
+        case LVAL_SYM: return (strcmp(x->data.sym, y->data.sym) == 0);
+        case LVAL_FUN: 
+                   if (x->builtin || y-> builtin) {
+                       return x->builtin == y->builtin;
+                   } 
+                   else {
+                       return lval_compare(x->formals, y->formals) &&
+                          lval_compare(x->body, y->body); 
+                   }
+        case LVAL_QEXPR:
+        case LVAL_SEXPR:
+            if (x->count != y->count) { return false; }
+            
+            for (int i = 0; i < x->count; i++) {
+                if (!lval_compare(x->cell[i], y->cell[i])) {
+                    return false;
+                }
+            }
+            return true;
+        default: return false;
+    }
+}
+
 lval* builtin_equal(lenv* e, lval* a) {
-    return builtin_cond(e, a, "==");
+    LASSERT_NUM("==", a, 2);
+    lval* x = lval_pop(a, 0);
+    lval* y = lval_pop(a, 0);
+    lval* b = lval_bool(lval_compare(x, y));
+    lval_del(a); lval_del(x); lval_del(y);
+    return b;
 }
 
 lval* builtin_lessorequal(lenv* e, lval* a) {
