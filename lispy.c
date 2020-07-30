@@ -251,8 +251,21 @@ lval* lval_add(lval* v, lval* x) {
     return v;
 }
 
+/* Takes a string lval and concatenates the second string onto the first */
+lval* join_string(lval* x, lval* y) {
+    /* !!! error checking? */
+    strcat(x->data.str, y->data.str);
+    lval_del(y);
+    return x;
+}
+
 /* Joins lval y to lval x, deleting y */
 lval* lval_join(lval* x, lval* y) {  
+    if ((x->type == LVAL_STR) && (y->type == LVAL_STR)) {
+        join_string(x, y);
+        return x; 
+    }
+
     for (int i = 0; i < y->count; i++) {
         x = lval_add(x, y->cell[i]);
     }
@@ -612,11 +625,25 @@ lval* lval_call(lenv* e, lval* f, lval* a) {
     }
 }
 
-/* Takes one or more Q-Expressions and returns a Q-Expr with them joined together */
+/* Takes one or more Q-Expressions or strings and an lval with them joined together */
 lval* builtin_join(lenv* e, lval* a) {
+    /* check that all members of expression are string or q-expr*/
+    bool str = false, qex = false;
     for (int i = 0; i < a->count; i++) {
-        LASSERT_TYPE("join", a, i, LVAL_QEXPR);
+        if (a->cell[i]->type == LVAL_STR) {
+            str = true;
+        }
+        else if (a->cell[i]->type == LVAL_QEXPR) {
+            qex = true;
+        }
+        else {
+            LASSERT(a, false, "Join expected string or Q-Expr, got %s", 
+                    ltype_name(a->cell[i]->type));
+        }
+        /* Check that args are only one type */ 
+        LASSERT(a, (!(str && qex)), "Join cannot join Q-Expr with String.");
     }
+
     lval* x = lval_pop(a, 0);
     
     while (a->count) {
