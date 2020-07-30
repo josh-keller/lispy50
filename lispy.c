@@ -505,22 +505,55 @@ lval* builtin_list(lenv* e, lval* a) {
 /* Returns the first element of a Q-Expression */
 lval* builtin_head(lenv* e, lval* a) {
     LASSERT_NUM("head", a, 1);
-    LASSERT_TYPE("head", a, 0, LVAL_QEXPR);
-    LASSERT_NOT_EMPTY("head", a, 0);
-    
-    lval* v = lval_take(a, 0);  
-    while (v->count > 1) { lval_del(lval_pop(v, 1)); }
+    LASSERT(a, ((a->cell[0]->type == LVAL_QEXPR) || (a->cell[0]->type == LVAL_STR)),
+            "Incorrect type passed to head. Expected Q-Expr or String, got %s.",
+            ltype_name(a->cell[0]->type));
+
+    lval* v;
+
+    if (a->cell[0]->type == LVAL_STR) {
+        char* s = malloc(sizeof(char) * 2);
+        s[0] = a->cell[0]->data.str[0];
+        s[1] = '\0';
+        v = lval_str(s);
+        lval_del(a);
+        free(s);
+    }
+    else {
+        LASSERT_NOT_EMPTY("head", a, 0);
+        v = lval_take(a, 0);  
+        while (v->count > 1) { lval_del(lval_pop(v, 1)); }
+    }
+
     return v;
 }
 
 /* Returns all but the first element of a Q-Expression */
 lval* builtin_tail(lenv* e, lval* a) {
     LASSERT_NUM("tail", a, 1);
-    LASSERT_TYPE("tail", a, 0, LVAL_QEXPR);
-    LASSERT_NOT_EMPTY("tail", a, 0);
+    LASSERT(a, ((a->cell[0]->type == LVAL_QEXPR) || (a->cell[0]->type == LVAL_STR)),
+            "Incorrect type passed to head. Expected Q-Expr or String, got %s.",
+            ltype_name(a->cell[0]->type));
 
-    lval* v = lval_take(a, 0);  
-    lval_del(lval_pop(v, 0));
+    lval* v;
+    if (a->cell[0]->type == LVAL_STR) {
+        char* s = malloc(sizeof(a->cell[0]->data.str));
+        int i = 0;
+        while (a->cell[0]->data.str[i + 1] != '\0') {
+            s[i] = a->cell[0]->data.str[i + 1];
+            i++;
+        }
+        s[i] = '\0';
+        v = lval_str(s);
+        lval_del(a);
+        free(s);
+    }
+    else {
+        LASSERT_NOT_EMPTY("tail", a, 0);
+        v = lval_take(a, 0);  
+        lval_del(lval_pop(v, 0));
+    }
+    
     return v;
 }
 
