@@ -557,6 +557,19 @@ lval* builtin_tail(lenv* e, lval* a) {
     return v;
 }
 
+/* Reads in and converts a string to a Q-Expr */
+lval* builtin_read(lenv* e, lval* a) {
+    LASSERT_NUM("read", a, 1);
+    LASSERT_TYPE("read", a, 0, LVAL_STR);
+
+    lval* q = lval_qexpr();
+    lval* s = lval_take(a, 0);
+    
+    lval_add(q, lval_sym(s->data.str));
+    lval_del(s);
+    return q;
+}
+
 /* Takes a Q-Expr and evaluates it as if it were an S-Expr */
 lval* builtin_eval(lenv* e, lval* a) {
     LASSERT_NUM("eval", a, 1);
@@ -776,41 +789,38 @@ lval* builtin_op_i(lenv* e, lval* a, char* op) {
     
     while (a->count > 0) {  
         lval* y = lval_pop(a, 0);
-        if (strcmp(op, "+") == 0) { x->data.integer += y->data.integer; continue; }
-        if (strcmp(op, "-") == 0) { x->data.integer -= y->data.integer; continue; }
-        if (strcmp(op, "*") == 0) { x->data.integer *= y->data.integer; continue; }
-        if (strcmp(op, "/") == 0) {
+        if (strcmp(op, "+") == 0) { x->data.integer += y->data.integer;}
+        else if (strcmp(op, "-") == 0) { x->data.integer -= y->data.integer;}
+        else if (strcmp(op, "*") == 0) { x->data.integer *= y->data.integer;}
+        else if (strcmp(op, "/") == 0) {
             if (y->data.integer == 0) {
                 lval_del(x); lval_del(y);
                 x = lval_err("Division By Zero.");
                 break;
             }
             x->data.integer /= y->data.integer;
-            continue; 
         }
-        if (strcmp(op, "%") == 0) {
+        else if (strcmp(op, "%") == 0) {
             if (y->data.integer == 0) {
                 lval_del(x); lval_del(y);
                 x = lval_err("Division By Zero.");
                 break;
             }
             x->data.integer %= y->data.integer;
-            continue; 
         }   
-        if (strcmp(op, "^") == 0) { 
+        else if (strcmp(op, "^") == 0) { 
             if (y->data.integer < 0) {
                 lval_del(x); lval_del(y);
                 x = lval_err("Unable to raise to negative power.");
                 break;
             }
             x->data.integer = pow(x->data.integer, y->data.integer);
-            continue; 
         }
-        if (strcmp(op, "min") == 0) {
-            if (y->data.integer < x->data.integer) { x->data.integer = y->data.integer; continue; }
+        else if (strcmp(op, "min") == 0) {
+            if (y->data.integer < x->data.integer) { x->data.integer = y->data.integer;}
         }
-        if (strcmp(op, "max") == 0) {
-            if (y->data.integer > x->data.integer) { x->data.integer = y->data.integer; continue; }
+        else if (strcmp(op, "max") == 0) {
+            if (y->data.integer > x->data.integer) { x->data.integer = y->data.integer;}
         }
         lval_del(y);
     }
@@ -835,42 +845,38 @@ lval* builtin_op_d(lenv* e, lval* a, char* op) {
     
     while (a->count > 0) {  
         lval* y = lval_pop(a, 0);
-        if (strcmp(op, "+") == 0) { x->data.decimal += y->data.decimal; continue; }
-        if (strcmp(op, "-") == 0) { x->data.decimal -= y->data.decimal; continue; }
-        if (strcmp(op, "*") == 0) { x->data.decimal *= y->data.decimal; continue; }
-        if (strcmp(op, "/") == 0) {
+        if (strcmp(op, "+") == 0) { x->data.decimal += y->data.decimal;}
+        else if (strcmp(op, "-") == 0) { x->data.decimal -= y->data.decimal;}
+        else if (strcmp(op, "*") == 0) { x->data.decimal *= y->data.decimal;}
+        else if (strcmp(op, "/") == 0) {
             if (y->data.decimal == 0) {
                 lval_del(x); lval_del(y);
                 x = lval_err("Division By Zero.");
                 break;
             }
             x->data.decimal /= y->data.decimal;
-            continue; 
         }
-        if (strcmp(op, "%") == 0) {
+        else if (strcmp(op, "%") == 0) {
             lval_del(x); lval_del(y);
             x = lval_err("Mod is invalid operation on decimal.");
             break;
         }   
-        if (strcmp(op, "^") == 0) { 
+        else if (strcmp(op, "^") == 0) { 
             if (y->data.decimal < 0) {
                 lval_del(x); lval_del(y);
                 x = lval_err("Unable to raise to negative power.");
                 break;
             }
             x->data.decimal = pow(x->data.decimal, y->data.decimal);
-            continue;            
         }
-        if (strcmp(op, "min") == 0) {
+        else if (strcmp(op, "min") == 0) {
             if (y->data.decimal < x->data.decimal) {
                 x->data.decimal = y->data.decimal;
-                continue;
             }
         }
-        if (strcmp(op, "max") == 0) {
+        else if (strcmp(op, "max") == 0) {
             if (y->data.decimal > x->data.decimal) { 
                 x->data.decimal = y->data.decimal; 
-                continue; 
             }
         }
         lval_del(y);
@@ -1308,6 +1314,7 @@ char* func_name(lval* func) {
         else if (func->builtin == builtin_head) return "head";
         else if (func->builtin == builtin_tail) return "tail";
         else if (func->builtin == builtin_eval) return "eval";
+        else if (func->builtin == builtin_read) return "read";
         else if (func->builtin == builtin_join) return "join";
         else if (func->builtin == builtin_cons) return "cons";
         else if (func->builtin == builtin_init) return "init";
@@ -1397,6 +1404,7 @@ void lenv_add_builtins(lenv* e) {
     lenv_add_builtin(e, "load", builtin_load);
     lenv_add_builtin(e, "print", builtin_print);
     lenv_add_builtin(e, "error", builtin_error);
+    lenv_add_builtin(e, "read", builtin_read);
 }
 
 
