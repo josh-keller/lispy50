@@ -253,7 +253,8 @@ lval* lval_add(lval* v, lval* x) {
 
 /* Takes a string lval and concatenates the second string onto the first */
 lval* join_string(lval* x, lval* y) {
-    /* !!! error checking? */
+    x->data.str = (char *) realloc(x->data.str, 
+            strlen(x->data.str) + strlen(y->data.str) + 1);
     strcat(x->data.str, y->data.str);
     lval_del(y);
     return x;
@@ -261,11 +262,6 @@ lval* join_string(lval* x, lval* y) {
 
 /* Joins lval y to lval x, deleting y */
 lval* lval_join(lval* x, lval* y) {  
-    if ((x->type == LVAL_STR) && (y->type == LVAL_STR)) {
-        join_string(x, y);
-        return x; 
-    }
-
     for (int i = 0; i < y->count; i++) {
         x = lval_add(x, y->cell[i]);
     }
@@ -537,7 +533,7 @@ lval* builtin_tail(lenv* e, lval* a) {
 
     lval* v;
     if (a->cell[0]->type == LVAL_STR) {
-        char* s = malloc(sizeof(a->cell[0]->data.str));
+        char* s = malloc(strlen(a->cell[0]->data.str));
         int i = 0;
         while (a->cell[0]->data.str[i + 1] != '\0') {
             s[i] = a->cell[0]->data.str[i + 1];
@@ -692,9 +688,17 @@ lval* builtin_join(lenv* e, lval* a) {
 
     lval* x = lval_pop(a, 0);
     
-    while (a->count) {
-        lval* y = lval_pop(a, 0);
-        x = lval_join(x, y);
+    if (qex) {
+        while (a->count) {
+            lval* y = lval_pop(a, 0);
+            x = lval_join(x, y);
+        }
+    }
+    else {
+        while (a->count) {
+            lval* y = lval_pop(a, 0);
+            x = join_string(x, y);
+        }
     }
     lval_del(a);
     return x;
