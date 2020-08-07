@@ -1,22 +1,29 @@
 # -*- MakeFile -*-
 
-lispy: lispy.o mpc.o lval.o lenv.o builtins.o
-	cc -std=c99 -Wall lispy.o mpc.o lval.o lenv.o builtins.o -ledit -lm -o lispy
+TARGET = lispy
+LIBS = -lm -ledit
+CC = gcc
+CFLAGS = -g -Wall -MMD -MP -std=c99
 
-lispy.o: lispy.c mpc.h lval.h lenv.h builtins.h
-	cc -std=c99 -c -Wall lispy.c
+default: $(TARGET)
 
-builtins.o: builtins.c builtins.h lval.o lenv.o 
-	cc -std=c99 -c -Wall builtins.c
+OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))
+DEPS = $(OBJECTS:.o=.d)
 
-lenv.o: lenv.c lenv.h lval.o
-	cc -std=c99 -c -Wall lenv.c
+-include $(DEPS)
 
-lval.o: lval.c lval.h
-	cc -std=c99 -c -Wall lval.c
+%.o: %.c $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-mpc.o: mpc.c mpc.h
-	cc -std=c99 -c -Wall mpc.c
+
+.PRECIOUS: $(TARGET) $(OBJECTS)
+
+$(TARGET): $(OBJECTS)
+	    $(CC) $(OBJECTS) -Wall $(LIBS) -o $@
+
+.PHONY: clean
 
 clean:
-	rm *.o lispy
+	rm -f *.o
+	rm -f $(TARGET)
+
