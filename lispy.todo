@@ -1,46 +1,15 @@
 STRINGS:
-
-> Adapt the builtin function join to work on strings.
-› Adapt the builtin function head to work on strings.
-› Adapt the builtin function tail to work on strings.
-› Create a builtin function read that reads in and converts a string to a Q-expression.
 › Create a builtin function show that can print the contents of strings as it is (unescaped).
 › Create a special value ok to return instead of empty expressions ().
 › Add functions to wrap all of C's file handling functions such as fopen and fgets.
+
 FUNCTIONS:
 › Change variable arguments so at least one extra argument must be supplied before it is evaluated.
 
 CONDITIONALS:
 > Add decimal functionality for comparison operators
 
-FIXES:
-> Fix pow function so that it works for negative exponents and returns a decimal
 
-GENERAL:    
+Add to standard library
+Fix builtin_env function to have nicer output
 
-LISP FUNCTIONS:
-› Define a Lisp function that returns the first element from a list.
-› Define a Lisp function that returns the second element from a list.
-› Define a Lisp function that calls a function with two arguments in reverse order.
-› Define a Lisp function that calls a function with arguments, then passes the result to another function.
-x Define a recursive Lisp function that returns the nth item of that list.
-x Define a recursive Lisp function that returns 1 if an element is a member of a list, otherwise 0.
-› Define a Lisp function that returns the last element of a list.
-
-
-Adding a function:
-1. Write the function
-2. Add to lenv_add_builtins
-3. Add to func_name
-4. ?
-
-DONE:
-x Add additional functionality for equality operators.
-x Define a builtin_fun C function that is equivalent to the Lisp fun function.
-x Add lambda and = to builtin names
-x Add a specific boolean type to the language with the builtin variables true and false.
-x Builtins: <=, >=, !=
-x If function
-x Not operator
-x Create builtin logical operators or ||, and && and not ! and add them to the language.
-x Change redefinition of one of the builtin variables to something different an error.

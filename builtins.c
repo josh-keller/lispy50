@@ -331,14 +331,6 @@ lval* builtin_op_i(lenv* e, lval* a, char* op) {
             }
             x->data.integer %= y->data.integer;
         }   
-        else if (strcmp(op, "^") == 0) { 
-            if (y->data.integer < 0) {
-                lval_del(x); lval_del(y);
-                x = lval_err("Unable to raise to negative power.");
-                break;
-            }
-            x->data.integer = pow(x->data.integer, y->data.integer);
-        }
         else if (strcmp(op, "min") == 0) {
             if (y->data.integer < x->data.integer) { x->data.integer = y->data.integer;}
         }
@@ -384,14 +376,6 @@ lval* builtin_op_d(lenv* e, lval* a, char* op) {
             x = lval_err("Mod is invalid operation on decimal.");
             break;
         }   
-        else if (strcmp(op, "^") == 0) { 
-            if (y->data.decimal < 0) {
-                lval_del(x); lval_del(y);
-                x = lval_err("Unable to raise to negative power.");
-                break;
-            }
-            x->data.decimal = pow(x->data.decimal, y->data.decimal);
-        }
         else if (strcmp(op, "min") == 0) {
             if (y->data.decimal < x->data.decimal) {
                 x->data.decimal = y->data.decimal;
@@ -529,7 +513,37 @@ lval* builtin_max(lenv* e, lval* a) {
 }
 
 lval* builtin_pow(lenv* e, lval* a) {
-    return builtin_op(e, a, "^");
+    // Check if each argument is either int or dec
+    LASSERT_NUM("pow", a, 2);
+    lval* b, *exp, *temp;
+    if (a->cell[0]->type == LVAL_INT) {
+        temp = lval_pop(a, 0);
+        b = lval_dec((double) temp->data.integer);
+        lval_del(temp);
+    } else if (a->cell[0]->type == LVAL_DEC) {
+        b = lval_pop(a, 0);
+    } else {
+        char *type = ltype_name(a->cell[0]->type);
+        lval_del(a);
+        return lval_err("Expect integer or decimal. Got %s.", type);
+    }
+    
+    if (a->cell[0]->type == LVAL_INT) {
+        temp = lval_take(a, 0);
+        exp = lval_dec((double) temp->data.integer);
+        lval_del(temp);
+    } else if (a->cell[0]->type == LVAL_DEC) {
+        exp = lval_take(a, 0);
+    } else {
+        char *type = ltype_name(a->cell[0]->type);
+        lval_del(a);
+        return lval_err("Expect integer or decimal. Got %s.", type);
+    }
+    
+    lval* ans = lval_dec(pow(b->data.decimal, exp->data.decimal));
+    lval_del(b); lval_del(exp);
+
+    return ans;
 }
 
 lval* builtin_lessthan(lenv* e, lval* a) {
