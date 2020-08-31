@@ -296,6 +296,28 @@ lval* builtin_exit(lenv* e, lval* a) {
     return lval_sym("exit");
 }
 
+/* Converts all cells from int to dec (as neccessary) */
+lval* int_to_dec(lval* a) {
+    lval* b = lval_sexpr();
+
+    while (a->count) {
+        lval* x = lval_pop(a, 0);
+        if (x->type == LVAL_DEC) {
+            lval_add(b, x);
+        } else if (x->type == LVAL_INT) {
+            lval* y = lval_dec((double) x->data.integer);
+            lval_del(x);
+            lval_add(b, y);
+        } else {
+            char* type = ltype_name(x->type);
+            lval_del(x); lval_del(a); lval_del(b);
+            return lval_err("Expected type dec or int, got %s.", type);
+        }
+    }
+    lval_del(a);
+    return b;
+}
+
 /* Evaluates basic math operations on integers */
 lval* builtin_op_i(lenv* e, lval* a, char* op) {
     for (int i = 0; i < a->count; i++) {
@@ -406,7 +428,7 @@ lval* builtin_op(lenv* e, lval* a, char* op) {
             d = true;
         }
         else {
-            lval *err = lval_err("Type error: expected Integer or Decimal, got %s.\n", ltype_name(a->cell[j]->type));
+            lval *err = lval_err("Expected Integer or Decimal, got %s.\n", ltype_name(a->cell[j]->type));
             lval_del(a);
             return err; 
         }
@@ -416,26 +438,8 @@ lval* builtin_op(lenv* e, lval* a, char* op) {
         return builtin_op_i(e, a, op);
     }
     
-    /* if sexpr contains both integers and decimals, */
-    /* convert all integers and call lval_eval_d */
-    else if (i && d) {
-        /* create a new sexpr */
-        lval *s = lval_sexpr();
-        
-        /* pop each value in a */
-        do {
-           lval *v = lval_pop(a, 0);
-           /* if it is an integer, create a new lval_dec and cast the value */
-           if (v->type == LVAL_INT) {
-               lval* temp = lval_dec((float) v->data.integer);
-               lval_del(v);
-               v = temp;
-           }
-           lval_add(s, v);
-        } while (a->count > 0);
-
-        lval_del(a);
-        return builtin_op_d(e, s, op);
+    if (i && d) {
+        return builtin_op_d(e, int_to_dec(a), op);
     }
     else {
         return builtin_op_d(e, a, op);
