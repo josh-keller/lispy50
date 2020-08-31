@@ -298,6 +298,27 @@ lval* builtin_exit(lenv* e, lval* a) {
 
 /* Converts all cells from int to dec (as neccessary) */
 lval* int_to_dec(lval* a) {
+    /* check that all members of expression are integer or decimal */
+    bool i = false, d = false;
+    for (int j = 0; j < a->count; j++) {
+        if (a->cell[j]->type == LVAL_INT) {
+            i = true;
+        }
+        else if (a->cell[j]->type == LVAL_DEC) {
+            d = true;
+        }
+        else {
+            lval *err = lval_err("Expected Integer or Decimal, got %s.\n", ltype_name(a->cell[j]->type));
+            lval_del(a);
+            return err; 
+        }
+    }
+
+    /* If all values are the same type, return lval without any conversions */
+    if ((i && !d) || (d && !i)) {
+        return a;
+    }
+
     lval* b = lval_sexpr();
 
     while (a->count) {
@@ -418,28 +439,14 @@ lval* builtin_op_d(lenv* e, lval* a, char* op) {
 /* Evaluates basic math operations by converting (if necessary) 
  * and calling integer or decimal functions */
 lval* builtin_op(lenv* e, lval* a, char* op) {
-    /* check that all members of expression are integer or decimal */
-    bool i = false, d = false;
-    for (int j = 0; j < a->count; j++) {
-        if (a->cell[j]->type == LVAL_INT) {
-            i = true;
-        }
-        else if (a->cell[j]->type == LVAL_DEC) {
-            d = true;
-        }
-        else {
-            lval *err = lval_err("Expected Integer or Decimal, got %s.\n", ltype_name(a->cell[j]->type));
-            lval_del(a);
-            return err; 
-        }
+    a = int_to_dec(a);
+
+    if (a->type == LVAL_ERR) {
+        return a;
     }
     
-    if (i && !d) {
+    if (a->cell[0]->type == LVAL_INT) {
         return builtin_op_i(e, a, op);
-    }
-    
-    if (i && d) {
-        return builtin_op_d(e, int_to_dec(a), op);
     }
     else {
         return builtin_op_d(e, a, op);
@@ -469,22 +476,47 @@ lval* builtin_cond_i(lenv* e, lval* v1, lval* v2, char* op) {
     return x;
 }
 
+lval* builtin_cond_d(lenv* e, lval* v1, lval* v2, char* op) {
+    lval* x = lval_bool(false);
+    
+    if (strcmp(op, "<") == 0) {
+        x->data.boolean = v1->data.decimal < v2->data.decimal;
+    }
+    else if (strcmp(op, ">") == 0) {
+        x->data.boolean = v1->data.decimal > v2->data.decimal;
+    }
+    else if (strcmp(op, ">=") == 0) {
+        x->data.boolean = v1->data.decimal >= v2->data.decimal;
+    }
+    else if (strcmp(op, "<=") == 0) {
+        x->data.boolean = v1->data.decimal <= v2->data.decimal;
+    }
+    else if (strcmp(op, "!=") == 0) {
+        x->data.boolean = v1->data.decimal != v2->data.decimal;
+    }
+
+    lval_del(v1); lval_del(v2);
+    return x;
+}
+
 lval* builtin_cond(lenv* e, lval* a, char* op) {
     
     /* check that there are two values */
     LASSERT_NUM(op, a, 2);
+    
+    a = int_to_dec(a);
+    if (a->type == LVAL_ERR) {
+        return a;
+    }
 
     lval* v1 = lval_pop(a, 0);
     lval* v2 = lval_take(a, 0);
     
-    if (v1->type == LVAL_INT && v2->type == LVAL_INT) {
+    if (v1->type == LVAL_INT) {
         return builtin_cond_i(e, v1, v2, op);
     }
     else {
-        lval* e = lval_err("Incorrect types (%s, %s) passed to %s.",
-                v1->type, v2->type, op);
-        lval_del(v1); lval_del(v2);
-        return e;
+        return builtin_cond_d(e, v1, v2, op);
     }
 }
 
