@@ -930,6 +930,7 @@ void lenv_add_builtins(lenv* e) {
     lenv_add_builtin(e, "=", builtin_put);
     lenv_add_builtin(e, "env", builtin_env);
     lenv_add_builtin(e, "\\", builtin_lambda);
+    lenv_add_builtin(e, "lambda", builtin_lambda);
     lenv_add_builtin(e, "fun", builtin_fun);
     
     /* List Functions */
