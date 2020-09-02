@@ -118,8 +118,8 @@ int main(int argc, char** argv) {
         ",
         Number, Symbol, String, Comment, Sexpr, Qexpr, Expr, Lispy);
     
-    puts("Lispy Version 0.0.0.0.7");
-    puts("Press Ctrl+c to Exit\n");
+    puts("Lispy50 Version 0.9.2");
+    puts("Press Ctrl+c or 'exit' to Exit\n");
     
     lenv* e = lenv_new();
     lenv_add_builtins(e);
