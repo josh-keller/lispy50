@@ -72,5 +72,57 @@ Lispy50 also provides a simplified way of defining and storing functions using t
 fun {add-together x y} {+ x y}
 ```
 
+# Builtins and Standard Library
+
+Here are the functions built in to Lispy50. More functions and documentation to come.
+
+## Basic Mathematical Functions
+Function Name   | Syntax                        | Description
+----------------|-------------------------------|-----------------------
+add, +          | `(+ 5 5)`                     | Add two or more numbers together. Integer/Decimal.
+sub, -          | `(- 6 3)` `(- 5)`             | Subtract one or more numbers from the first argument. Also unary negation.
+mul, *          | `(* 5 5)`                     | Multiplication of two or more numbers.
+div, /          | `(\ 2 2)` `(\ 4.5 1.5)`       | Division. Integers will return the integer portion. Decimal will return decimal.
+mod, %          | `(% 6 5)`                     | Modulo. Returns the remainder when dividing two integers.
+pow, ^          | `(pow 2 2)`                   | Power function. Raises first argument to power of second. Returns a decimal
+min, max        | `(min 5 6 7)`                 | Returns the min or max value in the arguments.
+
+## Conditional and Ordering Functions
+Function Name   | Syntax                        | Description
+----------------|-------------------------------|-----------------------
+<, >, <=, >=    | `(< 5 6)`                     | Comparison operators
+==, !=          | `(== 5 5)`                    | Equality operators
+not, !          | `(! (== 4 5))`                | Logical negation
+or, ||, and, && | `(and (== 5 5) (< 4 5))`      | Logical Or/And
+if              | `(if (== 4 5) {...} {...})`   | If: evaluates to first Q-Expression when conditional is true, otherwise evaluates to second.
+
+## List Functions
+Function Name   | Syntax                        | Description
+----------------|-------------------------------|-------------------------
+list            | `(list 5 6 7 9)`                | Creates a list (Q-expr) from the arguments
+head            | `(head {5 6 7 8})`              | Returns a list containing the first element of the list passed
+tail            | `(tail {5 6 7 8})`              | Returns a list containing all but the first element of the list passed
+eval            | `(eval {+ 1 2})`                | Evaluates a Q-Expression
+join            | `(join {5 6} {7 8})` <br /> `(join "Hello " "world")` | Joins two or more lists or strings            
+cons            | `(cons 5 {6 7})`                | Adds a value onto the beginning of a list
+init            | `(init {6 7 8})`                | Returns list with all but the last element
+len             | `(len {6 7 8})`, `(len "Hello")`  | Returns the number of elements in a list.
 
 
+## Functions and Environment
+Function Name   | Syntax                        | Description
+----------------|-------------------------------|-------------------------
+def             | `(def {x} 6)`                 | Assigns to variable. Symbol must be in Q-Expression.
+=               | `(= {y} "hello")`             | Assigns to variable. Local scope in functions.
+env             | `env`                         | Prints current environment variable
+lambda, \\ <br /> fun | See [functions](#Functions)   | See [functions](#Functions)
+
+## String and File Functions
+Function Name   | Syntax                        | Description
+----------------|-------------------------------|-------------------------
+load            | (load "test.lspy")            | Loads a lispy file from disk.
+print           | (print "Hello")               | Prints to output. Useful when loading a file at command line.
+
+
+# Standard Library
+More documentation on the standard library coming soon.
