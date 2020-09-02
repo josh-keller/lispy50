@@ -126,7 +126,14 @@ int main(int argc, char** argv) {
 
     bool quit = false;
 
+    lval* s = builtin_load(e, lval_add(lval_sexpr(), lval_str("stdlib.lspy")));
+    if (s->type == LVAL_ERR) {
+        lval_println(s);
+    }
+    lval_del(s);
+
     if (argc == 1) {
+        
         while (!quit) {
             char* input = readline("lispy> ");
             add_history(input);
